@@ -40,5 +40,6 @@ jobs:
       # 3. Run the Ansible Playbook
       - name: ⚙️ Run Ansible Playbook
         run: |
-          cd /home/istize17/ansible_mealie
-          ansible-playbook -i inventory_githubflow.ini playbook.yml
+          ls -a
+          cd ./LDOCsys5
+          ansible-playbook -i inventory_githubflow.ini playbook.yaml
