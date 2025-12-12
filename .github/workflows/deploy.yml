@@ -23,7 +23,7 @@ jobs:
           eval $(ssh-agent -s)
           ssh-add ~/.ssh/control_node_key
           
-          ssh-keyscan -H your_control_node_ip >> ~/.ssh/known_hosts 
+          ssh-keyscan -H 34.116.171.246 >> ~/.ssh/known_hosts 
           
         env:
           CONTROL_NODE_IP: '34.116.171.246'
