@@ -2,12 +2,6 @@
 
 set -e
 
-# Check python version 
-if ! python --version | grep -q "python"; then
-    echo "python is not installed"
-    exit 1
-fi
-
 # Check UFW is active
 if ! sudo ufw status | grep -q "Status: active"; then
     echo "ufw is not active"
