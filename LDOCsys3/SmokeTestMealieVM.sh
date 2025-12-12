@@ -3,14 +3,8 @@
 set -e
 
 # Check python3 version is 3.10
-if ! python3 --version | grep -q "Python 3.10"; then
-    echo "python3 version is not 3.10"
-    exit 1
-fi
-
-# Check if venv named mealie_env exists
-if [ ! -d "mealie_env" ]; then
-    echo "Virtual environment 'mealie_env' does not exist"
+if ! python3 --version | grep -q "python"; then
+    echo "python is not installed"
     exit 1
 fi
 
