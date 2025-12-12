@@ -40,4 +40,4 @@ jobs:
       # 3. Run the Ansible Playbook
       - name: ⚙️ Run Ansible Playbook
         run: |
-          ansible-playbook -i inventory_githubflow.ini playbook.yml
+          ansible-playbook -i inventory_githubflow.ini playbook.yaml
