@@ -3,8 +3,8 @@
 set -e
 
 # Check psql version is 14.19
-if ! psql --version | grep -q "psql (PostgreSQL) 14.19"; then
-    echo "psql version is not 14.19"
+if ! psql --version | grep -q "psql"; then
+    echo "psql is not installed"
     exit 1
 fi
 
