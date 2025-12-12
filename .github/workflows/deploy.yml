@@ -18,11 +18,12 @@ jobs:
       - name: 🔑 Set up SSH Private Key
         run: |
           mkdir -p ~/.ssh/
-          echo "${{ secrets.ANSIBLE_CONTROL_NODE_PRIVATE_KEY }}" > ~/.ssh/control_node_key
-          chmod 600 ~/.ssh/control_node_key
+          
+          echo "${{ secrets.ANSIBLE_CONTROL_NODE_PRIVATE_KEY }}" > /tmp/ansible_ssh_key
+          chmod 600 /tmp/ansible_ssh_key
           
           eval $(ssh-agent -s)
-          ssh-add ~/.ssh/control_node_key
+          ssh-add /tmp/ansible_ssh_key
           
           ssh-keyscan -H 34.116.171.246 >> ~/.ssh/known_hosts 
           
