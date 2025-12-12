@@ -2,8 +2,8 @@
 
 set -e
 
-# Check python3 version is 3.10
-if ! python3 --version | grep -q "python"; then
+# Check python version 
+if ! python --version | grep -q "python"; then
     echo "python is not installed"
     exit 1
 fi
