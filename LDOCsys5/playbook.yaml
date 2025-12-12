@@ -1,0 +1,183 @@
+---
+- name: Common Configuration for All Servers
+  hosts: all
+  become: yes
+  vars:
+    scripts_dir: /ldoc_scripts
+    repo_url: https://github.com/IzettaIonni/LDOCFall2025.git
+  tasks:
+
+    - name: Update system package lists
+      apt:
+        update_cache: yes
+
+    - name: Install required system packages
+      apt:
+        name:
+          - curl
+          - git
+          - ufw
+          - podman
+        state: present
+
+    - name: Setup UFW - allow SSH
+      ufw:
+        state: enabled
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Clone Scripts Repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ scripts_dir }}"
+        version: main
+        force: yes
+      register: git_clone
+
+    - name: Ensure all scripts are executable
+      file:
+        path: "{{ scripts_dir }}"
+        mode: '0755'
+        recurse: yes
+
+- name: Deploy PostgreSQL Server
+  hosts: postgres
+  become: yes
+  vars:
+    scripts_dir: /ldoc_scripts
+  tasks:
+
+    - name: Install postgres
+      apt:
+        name:
+          - postgresql 
+          - postgresql-contrib
+        state: present
+
+    - name: Allow PostgreSQL Port 5432
+      ufw:
+        rule: allow
+        port: '5432'
+        proto: tcp
+
+    - name: Run Smoke Tests
+      ansible.builtin.command: sh {{ scripts_dir }}/LDOCsys3/SmokeTestPostgreVM.sh
+      register: smoke_test_result
+      failed_when: smoke_test_result.rc != 0
+      changed_when: true 
+
+    - name: Display Smoke Test Results
+      ansible.builtin.debug:
+        msg: "Smoke Test Exit Code: {{ smoke_test_result.rc }}. Output:\n{{ smoke_test_result.stdout }}"
+
+    - name: Create systemd service for PostgreSQL Container
+      copy:
+        dest: /etc/systemd/system/mypostgre.service
+        content: |
+          [Unit]
+          Description=Podman container-mypostgre.service
+          Documentation=man:podman-generate-systemd(1)
+          Wants=network-online.target
+          After=network-online.target
+          RequiresMountsFor=%t/containers
+
+          [Service]
+          Environment=PODMAN_SYSTEMD_UNIT=%n
+          Restart=on-failure
+          TimeoutStopSec=70
+          ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon --replace -d --name mypostgre docker.io/izettaionni/mypostgre
+          ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+          ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+          Type=notify
+          NotifyAccess=all
+
+          [Install]
+          WantedBy=default.target
+
+    - name: Enable and Start PostgreSQL Service
+      systemd:
+        name: mypostgre
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Schedule PostgreSQL Healthcheck Script
+      cron:
+        name: "Postgres Healthcheck"
+        job: "{{ scripts_dir }}/LDOCsys5/postgres_healthcheck.sh"
+        minute: "*/5"
+
+- name: Deploy Mealie Server
+  hosts: mealie
+  become: yes
+  vars:
+    scripts_dir: /ldoc_scripts
+    mealie_venv_path: /mealieapi_venv
+  tasks:
+    - name: Install required system packages
+      apt:
+        name:
+          - python3-pip
+          - python3-venv
+        state: present
+
+    - name: Allow Mealie Port 9925
+      ufw:
+        rule: allow
+        port: '9925'
+        proto: tcp
+
+    - name: Create the mealieapi venv and install mealieapi client
+      ansible.builtin.pip:
+        name: mealieapi
+        state: present
+        virtualenv: "{{ mealie_venv_path }}"
+        virtualenv_command: python3 -m venv
+
+    - name: Run Smoke Tests
+      ansible.builtin.command: sh {{ scripts_dir }}/LDOCsys3/SmokeTestMealieVM.sh
+      register: smoke_test_result
+      failed_when: smoke_test_result.rc != 0
+      changed_when: true 
+
+    - name: Display Smoke Test Results
+      ansible.builtin.debug:
+        msg: "Smoke Test Exit Code: {{ smoke_test_result.rc }}. Output:\n{{ smoke_test_result.stdout }}"
+
+    - name: Create systemd service for Mealie Container
+      copy:
+        dest: /etc/systemd/system/mymealie.service
+        content: |
+          [Unit]
+          Description=Podman container-mymealie.service
+          Documentation=man:podman-generate-systemd(1)
+          Wants=network-online.target
+          After=network-online.target
+          RequiresMountsFor=%t/containers
+
+          [Service]
+          Environment=PODMAN_SYSTEMD_UNIT=%n
+          Restart=on-failure
+          TimeoutStopSec=70
+          ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon --replace -d --name mymealie docker.io/izettaionni/mymealie
+          ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+          ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+          Type=notify
+          NotifyAccess=all
+
+          [Install]
+          WantedBy=default.target
+
+    - name: Enable and Start Mealie Service
+      systemd:
+        name: mymealie
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Schedule Mealie Healthcheck (from Git)
+      cron:
+        name: "Mealie Healthcheck"
+        job: "{{ scripts_dir }}/LDOCsys4/mealie_healthcheck.sh"
+        minute: "*/5"
