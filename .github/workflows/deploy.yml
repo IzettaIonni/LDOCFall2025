@@ -1,0 +1,42 @@
+name: Ansible Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: 
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      # 1. Prepare the SSH Key for the Control Node
+      - name: 🔑 Set up SSH Private Key for Control Node
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.ANSIBLE_CONTROL_NODE_PRIVATE_KEY }}" > ~/.ssh/control_node_key
+          
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/control_node_key
+          
+          ssh-keyscan -H your_control_node_ip >> ~/.ssh/known_hosts 
+          
+        env:
+          CONTROL_NODE_IP: '34.116.171.246'
+
+      # 2. Install Python and Ansible
+      - name: 🐍 Install Python and Ansible
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      # 3. Run the Ansible Playbook
+      - name: ⚙️ Run Ansible Playbook
+        run: |
+          ansible-playbook -i inventory_githubflow.ini site.yml
