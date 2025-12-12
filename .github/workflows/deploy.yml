@@ -1,47 +1,63 @@
-name: Ansible Deployment
+name: Execute Ansible on Control Node
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
 
       # 1. Prepare the SSH Key for the Control Node
-      - name: 🔑 Set up SSH Private Key for Control Node
+      - name: 🔑 Set up SSH Private Key
         run: |
           mkdir -p ~/.ssh/
-          echo "${{ secrets.ANSIBLE_MEALIE_CONTROLNODE_SSH_PRIVATE_KEY }}" > /tmp/ansible_ssh_key
-          chmod 600 /tmp/ansible_ssh_key
-
+          echo "${{ secrets.ANSIBLE_CONTROL_NODE_PRIVATE_KEY }}" > ~/.ssh/control_node_key
+          chmod 600 ~/.ssh/control_node_key
+          
           eval $(ssh-agent -s)
-          ssh-add /tmp/ansible_ssh_key
+          ssh-add ~/.ssh/control_node_key
           
           ssh-keyscan -H 34.116.171.246 >> ~/.ssh/known_hosts 
-          ssh-keyscan -H 34.51.251.1 >> ~/.ssh/known_hosts 
-          ssh-keyscan -H 34.51.242.205 >> ~/.ssh/known_hosts 
           
-  
-        env:
-          CONTROL_NODE_IP: '34.116.171.246'
-
-      # 2. Install Python and Ansible
-      - name: 🐍 Install Python and Ansible
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install Ansible
-        run: pip install ansible
-
-      # 3. Run the Ansible Playbook
-      - name: ⚙️ Run Ansible Playbook
+      # 2. Define Variables
+      - name: 📝 Set Environment Variables
         run: |
-          cd ./LDOCsys5
-          ansible-playbook -i inventory_githubflow.ini playbook.yaml
+          # Replace with your actual control node details
+          echo "CONTROL_NODE_USER=istize17" >> $GITHUB_ENV
+          echo "CONTROL_NODE_IP=34.116.171.246" >> $GITHUB_ENV
+          echo "REMOTE_PATH=/home/istize17/ansible_mealie" >> $GITHUB_ENV
+          
+      # 3. Transfer ONLY the Playbook and Inventory to the Control Node
+      - name: 📂 Transfer Playbook and Inventory to Control Node
+        run: |
+          SSH_COMMAND="ssh -i ~/.ssh/control_node_key ${{ env.CONTROL_NODE_USER }}@${{ env.CONTROL_NODE_IP }}"
+          
+          $SSH_COMMAND "mkdir -p ${{ env.REMOTE_PATH }}"
+          
+          echo "Copying playbook.yaml..."
+          scp -i ~/.ssh/control_node_key \
+            ./LDOCsys5/playbook.yaml \
+            ${{ env.CONTROL_NODE_USER }}@${{ env.CONTROL_NODE_IP }}:${{ env.REMOTE_PATH }}/playbook.yaml
+            
+          echo "Copying inventory.ini..."
+          scp -i ~/.ssh/control_node_key \
+            ./LDOCsys5/inventory.ini \
+            ${{ env.CONTROL_NODE_USER }}@${{ env.CONTROL_NODE_IP }}:${{ env.REMOTE_PATH }}/inventory_githubflow.ini
+            
+      # 4. Execute the Playbook on the Control Node via SSH
+      - name: 🚀 Execute Playbook on Control Node
+        run: |
+          ssh -i ~/.ssh/control_node_key ${{ env.CONTROL_NODE_USER }}@${{ env.CONTROL_NODE_IP }} << EOF
+          
+          cd ${{ env.REMOTE_PATH }}
+          
+          ansible-playbook -i inventory.ini playbook.yaml
+          
+          EOF
