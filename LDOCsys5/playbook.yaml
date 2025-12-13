@@ -89,7 +89,7 @@
       systemd:
         name: mypostgre
         enabled: yes
-        state: started
+        state: restarted
         daemon_reload: yes
 
     - name: Schedule PostgreSQL Healthcheck Script
@@ -163,7 +163,7 @@
       systemd:
         name: mymealie
         enabled: yes
-        state: started
+        state: restarted
         daemon_reload: yes
 
     - name: Schedule Mealie Healthcheck (from Git)
