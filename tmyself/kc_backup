@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+    echo "usage: <path>"
+    exit 1
+fi
+
+backup_path="/var/data/backup"
+name="kc_backup_$(data +%Y%m%d_%H%M%S).tar.gz"
+
+sudo chown kcdamin:kcadmin $backup_path
+sudo chmod u+rw $backup_path
+
+sudo -u kcadmin tar -czf "$backup_path/$name" "$1"

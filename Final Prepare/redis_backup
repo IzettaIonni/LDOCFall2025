@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+    echo "usage: <data_path>"
+fi
+
+backup_name="redis_backup_$(date +%Y%m%d_%H%M%S)"
+backup_path="/var/data/backup"
+
+if [ ! -d $backup_path ]; then
+    sudo mkdir -p $backup_path
+fi
+
+sudo chown kcadmin:kcadmin $backup_path
+sudo chmod -R u+rw $backup_path
+
+sudo -u kcadmin tar -czf "$backup_path/$backup_name.tar.gz" $1 || exit 1

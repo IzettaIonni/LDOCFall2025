@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+    echo "usage: <image>"
+    exit
+fi
+
+sudo podman --version || exit 1
+sudo podman info >/dev/null 2>&1 || exit 1
+
+if ! sudo podman image exists $1; then 
+    if ! sudo podman pull $1; then 
+        exit 1
+    fi
+fi

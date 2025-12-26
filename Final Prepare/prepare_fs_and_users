@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+    echo "usage: <path>"
+    eixt 1
+fi
+
+path="$1/data"
+
+if [ ! -d $path ]; then
+    sudo mkdir -p $path
+fi
+
+id kcadmin || sudo useradd kcadmin
+
+sudo chown kcadmin:kcadmin $path
+sudo chmod u+rwx $path

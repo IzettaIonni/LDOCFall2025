@@ -1,0 +1,11 @@
+#!/bin/bash
+
+sudo podman info || exit 1
+
+sudo podman generate systemd --name "kc_container" --container-prefix='' --files --new
+
+sudo mv kc_container.service /etc/systemd/system/
+
+sudo systemctl daemon-reload
+sudo systemctl enable kc_container
+sudo systemctl start kc_container

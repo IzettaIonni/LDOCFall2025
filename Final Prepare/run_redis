@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -z $1 -o -z $2 ]; then
+    echo "usage: <image> <path>"
+fi
+
+path=$2
+image=$1
+
+sudo podman run -d --name "redis_container" -e "REDIS_PASSWORD=redis" -v "$path:/data" "$image" || exit 1

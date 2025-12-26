@@ -1,0 +1,14 @@
+#!/bin/bash
+
+sudo podman generate systemd \
+--name "redis_container" \
+--new \
+--files \
+--container-prefix=''
+
+sudo mv redis_container.service /etc/systemd/system/
+
+sudo systemctl daemon-reload
+sudo systemctl enable redis_container
+sudo systemctl stop redis_container
+sudo systemctl start redis_container
